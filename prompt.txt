@@ -1,0 +1,36 @@
+Create a FastAPI-based service that:
+
+Core Functionality:
+- Initialize a headless Chrome browser using Selenium
+- Accept search queries via API endpoints
+- Return raw HTML results from the searches
+
+Search engines supported:
+- Google
+- Bing
+- Yahoo
+- DuckDuckGo
+
+Technical Requirements:
+- Use Pydantic models for request/response validation
+- Implement headless Chrome configuration using Selenium
+- Containerize the application with Docker
+
+Key Components:
+
+```
+Python
+# Base configuration for headless Chrome
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless=new')  # For newer Chrome versions
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+```
+
+API Structure:
+- POST endpoint for search queries
+- Response should include:
+        Raw HTML content
+        Status code
+        Execution time
+        Error handling
