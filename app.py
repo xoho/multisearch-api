@@ -14,7 +14,7 @@ class SearchResult(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str
-    search_engine: str = "bing"  # default to bing
+    search_engine: str = "bing"  # default to bing, supports "google", "bing", "yahoo", "duckduckgo"
 
 class SearchResponse(BaseModel):
     results: list[SearchResult]
@@ -40,8 +40,12 @@ def get_search_url(query: str, engine: str) -> str:
         return f"https://www.google.com/search?q={query}"
     elif engine.lower() == "bing":
         return f"https://www.bing.com/search?q={query}"
+    elif engine.lower() == "yahoo":
+        return f"https://search.yahoo.com/search?p={query}"
+    elif engine.lower() == "duckduckgo":
+        return f"https://html.duckduckgo.com/html/?q={query}"
     else:
-        raise ValueError(f"Unsupported search engine: {engine}")
+        raise ValueError(f"Unsupported search engine: {engine}. Supported engines: google, bing, yahoo, duckduckgo")
 
 def parse_bing_results(html_content: str) -> list[SearchResult]:
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -87,6 +91,52 @@ def parse_google_results(html_content: str) -> list[SearchResult]:
     
     return results[:10]  # Return top 10 results
 
+def parse_yahoo_results(html_content: str) -> list[SearchResult]:
+    soup = BeautifulSoup(html_content, 'html.parser')
+    results = []
+    
+    # Find all search result elements
+    for element in soup.select('div.algo'):
+        title_elem = element.find('h3')
+        if not title_elem:
+            continue
+            
+        title = title_elem.get_text(strip=True)
+        url = title_elem.find('a')['href'] if title_elem.find('a') else None
+        snippet = element.find(class_='compText').get_text(strip=True) if element.find(class_='compText') else None
+        
+        results.append(SearchResult(
+            title=title,
+            url=url,
+            snippet=snippet
+        ))
+    
+    return results[:10]  # Return top 10 results
+
+def parse_duckduckgo_results(html_content: str) -> list[SearchResult]:
+    soup = BeautifulSoup(html_content, 'html.parser')
+    results = []
+    
+    # Find all search result elements
+    for element in soup.select('.result'):
+        title_elem = element.find('a', class_='result__a')
+        if not title_elem:
+            continue
+            
+        title = title_elem.get_text(strip=True)
+        url = title_elem.get('href', None)
+        snippet_elem = element.find('a', class_='result__snippet')
+        snippet = snippet_elem.get_text(strip=True) if snippet_elem else None
+        
+        if title and (url or snippet):
+            results.append(SearchResult(
+                title=title,
+                url=url,
+                snippet=snippet
+            ))
+    
+    return results[:10]  # Return top 10 results
+
 @app.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
     start_time = time.time()
@@ -96,13 +146,19 @@ async def search(request: SearchRequest):
         search_url = get_search_url(request.query, request.search_engine)
         
         driver.get(search_url)
+        # Add a small delay to allow JavaScript content to load
+        time.sleep(2)
         html_content = driver.page_source
         status_code = 200
         
         # Parse results based on search engine
         if request.search_engine.lower() == "google":
             results = parse_google_results(html_content)
-        else:
+        elif request.search_engine.lower() == "yahoo":
+            results = parse_yahoo_results(html_content)
+        elif request.search_engine.lower() == "duckduckgo":
+            results = parse_duckduckgo_results(html_content)
+        else:  # default to bing
             results = parse_bing_results(html_content)
         
     except Exception as e:
