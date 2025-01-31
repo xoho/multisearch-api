@@ -22,6 +22,21 @@ A FastAPI-based service that performs browser searches using headless Chrome and
 
 ## Installation
 
+### Using Pre-built Container
+
+The latest version of the container is available on GitHub Container Registry:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/USERNAME/browser-search:latest
+
+# Or pull a specific version
+docker pull ghcr.io/USERNAME/browser-search:v1.0.0
+
+# Run the container
+docker run -d -p 8000:8000 ghcr.io/USERNAME/browser-search:latest
+```
+
 ### Local Development
 
 1. Clone the repository:
@@ -155,13 +170,45 @@ Once the server is running, you can access the interactive API documentation:
 The project structure is organized as follows:
 ```
 browser-search/
-├── app.py              # Main FastAPI application
-├── requirements.txt    # Python dependencies
-├── Dockerfile         # Docker configuration
-├── .dockerignore     # Docker ignore rules
-├── .gitignore        # Git ignore rules
-└── README.md         # Documentation
+├── .github/
+│   └── workflows/        # GitHub Actions workflows
+│       └── docker-build.yml
+├── app.py               # Main FastAPI application
+├── requirements.txt     # Python dependencies
+├── Dockerfile          # Docker configuration
+├── .dockerignore      # Docker ignore rules
+├── .gitignore         # Git ignore rules
+└── README.md          # Documentation
 ```
+
+### CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- Automated builds are triggered on:
+  - Push to main branch
+  - Pull requests to main branch
+  - Release tags (v*.*.*)
+- The workflow:
+  1. Builds the Docker image
+  2. Runs tests (if any)
+  3. Pushes to GitHub Container Registry
+  4. Signs the image using Cosign for security
+
+### Container Versioning
+
+Container images are tagged using the following scheme:
+- `latest`: Most recent build from main branch
+- `vX.Y.Z`: Release versions (from git tags)
+- `sha-XXXXXXX`: Specific commit builds
+- `pr-XX`: Pull request builds
+
+### Security
+
+All container images are:
+- Built using GitHub Actions
+- Stored in GitHub Container Registry (GHCR)
+- Signed using Cosign for authenticity verification
 
 ## Error Handling
 
